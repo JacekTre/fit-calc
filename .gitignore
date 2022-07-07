@@ -7,6 +7,5 @@
 .env
 .idea
 
+.docker/db
 .docker/app/log/*
-.docker/db/log/*
-.docker/db/lib/*
