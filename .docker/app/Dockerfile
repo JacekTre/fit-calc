@@ -5,10 +5,13 @@ RUN apt-get update \
     && apt-get install -y \
         libzip-dev \
         unzip \
+        postgresql-server-dev-13 \
     && docker-php-ext-install \
         zip \
         pdo_mysql \
-        bcmath
+        bcmath \
+        pdo \
+        pdo_pgsql
 
 RUN apt-get install -y \
         libcurl4-openssl-dev \
