@@ -1,0 +1,48 @@
+version: '3.5'
+
+services:
+    app:
+        build: ./.docker/app
+        container_name: ':container_name'
+        restart: 'on-failure'
+        tty: true
+        volumes:
+            - .:/var/www
+            - ./.docker/app/log:/var/log/apache2
+            - ./.docker/app/vhost.conf:/etc/apache2/sites-enabled/vhost.conf
+            - ./.docker/app/php.ini:/usr/local/etc/php/php.ini
+            - ./.docker/app/xdebug.ini:/usr/local/etc/php/conf.d/docker-php-ext-xdebug.ini
+            - ./.docker/app/error_reporting.ini:/usr/local/etc/php/conf.d/error_reporting.ini
+        networks:
+            network-name:
+                aliases:
+                    - network-name.local
+                ipv4_address: 10.8.0.2
+        depends_on:
+            - db
+
+    db:
+        image: mysql:5.7
+        container_name: ':container_name'
+        restart: 'on-failure'
+        volumes:
+            - ./.docker/db/lib:/var/lib/mysql
+            - ./.docker/db/log:/var/log/mysql
+        environment:
+            MYSQL_DATABASE: ':database'
+            MYSQL_USER: ':user'
+            MYSQL_PASSWORD: ':password'
+            MYSQL_ROOT_PASSWORD: ':root_password'
+        networks:
+            network-name:
+                aliases:
+                    - db
+                ipv4_address: 10.8.0.3
+
+networks:
+    network-name:
+        name: network-name
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 10.8.0.0/16

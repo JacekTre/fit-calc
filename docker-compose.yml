@@ -1,0 +1,45 @@
+version: '3.5'
+
+services:
+    app:
+        build: ./.docker/app
+        container_name: 'fc_app'
+        restart: 'on-failure'
+        tty: true
+        volumes:
+            - .:/var/www/fc-app
+            - ./.docker/app/log:/var/log/apache2
+            - ./.docker/app/vhost.conf:/etc/apache2/sites-enabled/vhost.conf
+            - ./.docker/app/php.ini:/usr/local/etc/php/php.ini
+        networks:
+            fitcalc:
+                aliases:
+                    - fitcalc.local
+                ipv4_address: 10.24.0.2
+        depends_on:
+            - db
+
+    db:
+        image: postgres:13-alpine
+        container_name: 'fc_db'
+        restart: 'on-failure'
+        ports:
+          - "5432:5432"
+        environment:
+          - POSTGRES_USER=postgres
+          - POSTGRES_PASSWORD=postgres
+        volumes:
+          - ./.docker/db:/var/lib/postgresql/data
+        networks:
+            fitcalc:
+                aliases:
+                    - db
+                ipv4_address: 10.24.0.3
+
+networks:
+    fitcalc:
+        name: 'fitcalc'
+        driver: bridge
+        ipam:
+            config:
+                - subnet: 10.24.0.0/16
