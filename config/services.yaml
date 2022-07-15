@@ -22,3 +22,16 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    command_handlers:
+      namespace: App\Diet\Application\Command\
+      resource: '../src/Diet/Application/Command/*/*Handler*'
+      tags: [command_handler]
+      public: true
+
+    query_executors:
+      namespace: App\Diet\Application\Query\
+      resource: '../src/Diet/Application/Query/*/*Executor*'
+      tags: [query_executor]
+      public: true
+

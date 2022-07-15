@@ -2,75 +2,111 @@
 
 namespace App\Controller;
 
-use App\Entity\Product;
-use App\Form\ProductType;
-use App\Repository\ProductRepository;
+use App\Diet\Application\CommandBusInterface;
+use App\Diet\Domain\Service\ProductService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 
-#[Route('/product')]
 class ProductController extends AbstractController
 {
-    #[Route('/', name: 'app_product_index', methods: ['GET'])]
-    public function index(ProductRepository $productRepository): Response
+    private ProductService $productService;
+
+    public function __construct(
+        ProductService $productService
+    ) {
+        $this->productService = $productService;
+    }
+
+    /**
+     * @Route("/product", name="product_index")
+     */
+    public function index(Request $request): Response
     {
+        $pageSize = intval($request->get('pageSize') ?? 0);
+        $page = intval($request->get('page') ?? 0);
+
+        $products = $this->productService->getList($pageSize, $page);
+
         return $this->render('product/index.html.twig', [
-            'products' => $productRepository->findAll(),
+            'products' => $products,
         ]);
     }
 
-    #[Route('/new', name: 'app_product_new', methods: ['GET', 'POST'])]
-    public function new(Request $request, ProductRepository $productRepository): Response
+    /**
+     * @Route("/product/add", name="product_add")
+     */
+    public function add(): Response
     {
-        $product = new Product();
-        $form = $this->createForm(ProductType::class, $product);
-        $form->handleRequest($request);
+        return $this->render('product/add.html.twig');
+    }
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $productRepository->add($product);
-            return $this->redirectToRoute('app_product_index', [], Response::HTTP_SEE_OTHER);
+    /**
+     * @Route("/product/save", name="product_save")
+     */
+    public function save(Request $request): Response
+    {
+        try {
+            $product = $this->productService->createProduct($request);
+        } catch (\Exception $exception) {
+            return $this->redirectToRoute('error_page', [
+                'message' => $exception->getMessage()
+            ]);
         }
-
-        return $this->renderForm('product/new.html.twig', [
-            'product' => $product,
-            'form' => $form,
-        ]);
     }
 
-    #[Route('/{id}', name: 'app_product_show', methods: ['GET'])]
-    public function show(Product $product): Response
+    /**
+     * @Route("/product/show/{id}", name="product_show")
+     */
+    public function show(string $id): Response
     {
-        return $this->render('product/show.html.twig', [
-            'product' => $product,
-        ]);
-    }
+        try {
+            $productView = $this->productService->getProductById($id);
 
-    #[Route('/{id}/edit', name: 'app_product_edit', methods: ['GET', 'POST'])]
-    public function edit(Request $request, Product $product, ProductRepository $productRepository): Response
-    {
-        $form = $this->createForm(ProductType::class, $product);
-        $form->handleRequest($request);
-
-        if ($form->isSubmitted() && $form->isValid()) {
-            $productRepository->add($product);
-            return $this->redirectToRoute('app_product_index', [], Response::HTTP_SEE_OTHER);
+            return $this->render('product/show.html.twig', [
+                'product' => $productView
+            ]);
+        } catch (\Exception $exception) {
+            return $this->redirectToRoute('error_page', [
+                'message' => $exception->getMessage()
+            ]);
         }
-
-        return $this->renderForm('product/edit.html.twig', [
-            'product' => $product,
-            'form' => $form,
-        ]);
     }
 
-    #[Route('/{id}', name: 'app_product_delete', methods: ['POST'])]
-    public function delete(Request $request, Product $product, ProductRepository $productRepository): Response
+    /**
+     * @Route("/product/edit/{id}", name="product_edit")
+     */
+    public function edit(string $id): Response
     {
-        if ($this->isCsrfTokenValid('delete'.$product->getId(), $request->request->get('_token'))) {
-            $productRepository->remove($product);
-        }
+        try {
+            $productView = $this->productService->getProductById($id);
 
-        return $this->redirectToRoute('app_product_index', [], Response::HTTP_SEE_OTHER);
+            return $this->render('product/edit.html.twig', [
+                'product' => $productView
+            ]);
+        } catch (\Exception $exception) {
+            return $this->redirectToRoute('error_page', [
+                'message' => $exception->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * @Route("/product/saveExist", name="product_save_exist")
+     */
+    public function saveExist(Request $request): Response
+    {
+        try {
+            $productView = $this->productService->update($request);
+
+            return $this->redirectToRoute('product_show', [
+                'id' => $productView->getId()
+            ]);
+        } catch (\Exception $exception) {
+            return $this->redirectToRoute('error_page', [
+                'message' => $exception->getMessage()
+            ]);
+        }
     }
 }
